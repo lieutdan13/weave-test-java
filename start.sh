@@ -94,7 +94,7 @@ function checkLog() {
 function checkPid() {
   if [ -e $PID_FILE ]; then
     pid=`cat $PID_FILE`
-    if kill -0 &>1 > /dev/null $pid; then
+    if kill -9 &>1 > /dev/null $pid; then
       exit 1
     else
       rm $PID_FILE
