@@ -84,7 +84,7 @@ if [ ! -x ${JAVA_EXEC} ]; then
 fi
 
 function checkLog() {
-  if [ "`find $WEAVE_LOG -mmin -20`" != "" ]; then
+  if [ "`find $WEAVE_LOG -mmin -20`" != "" ] && [ "`cat $WEAVE_LOG`" != "" ]; then
     return 0
   else
     return 1
@@ -106,7 +106,9 @@ function checkPid() {
 ## If WEAVE_LOG is set and has a path that exists
 if [ -n "${WEAVE_LOG}" ]; then
   # Make sure we can access the log file
-  touch ${WEAVE_LOG}
+  if [ ! -f ${WEAVE_LOG} ]; then
+    touch ${WEAVE_LOG}
+  fi
   if [ -f ${WEAVE_LOG} ];then
     if [ "$CRON" == "1" ]; then
       checkLog
