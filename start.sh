@@ -36,6 +36,16 @@ MIN_MEMORY=100m
 #MAX_MEMORY=256m
 #MIN_MEMORY=256m
 
+############### Run weave as a cron ###############
+## Enabling this option will allow you to run Weave as a cron. At every run,
+## it will check the log for recent activity. If no activity has been detected,
+## the script will kill weave and start a new one in the background.
+## The WEAVE_LOG must be defined in order to use the CRON option. It's also
+## required that the log name is static and does not have a variable.
+CRON=0
+
+############### Pid file for running as a Cron ###############
+PID_FILE=/var/run/weave.pid
 
 
 ############### Load the values from the config file ###############
@@ -73,13 +83,41 @@ if [ ! -x ${JAVA_EXEC} ]; then
   exit 1
 fi
 
+function checkLog() {
+  if [ "`find $WEAVE_LOG -mmin -20`" != "" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function checkPid() {
+  if [ -e $PID_FILE ]; then
+    pid=`cat $PID_FILE`
+    if kill -0 &>1 > /dev/null $pid; then
+      exit 1
+    else
+      rm $PID_FILE
+    fi
+  fi
+}
+
 ############### Now startup the client, enabling logging if requested ##################
 ## If WEAVE_LOG is set and has a path that exists
 if [ -n "${WEAVE_LOG}" ]; then
   # Make sure we can access the log file
   touch ${WEAVE_LOG}
   if [ -f ${WEAVE_LOG} ];then
-    ${JAVA_EXEC} -Xmx${MAX_MEMORY} -Xms${MIN_MEMORY} -XX:+CMSClassUnloadingEnabled sh.weave.alpha_engine ${REGISTERED_WORKER_ID} >> ${WEAVE_LOG}
+    if [ "$CRON" == "1" ]; then
+      checkLog
+      if [ $? -eq 1 ]; then
+        checkPid
+        ${JAVA_EXEC} -Xmx${MAX_MEMORY} -Xms${MIN_MEMORY} -XX:+CMSClassUnloadingEnabled sh.weave.alpha_engine ${REGISTERED_WORKER_ID} >> ${WEAVE_LOG} 2>&1 &
+        echo $! > $PID_FILE
+      fi
+    else
+      ${JAVA_EXEC} -Xmx${MAX_MEMORY} -Xms${MIN_MEMORY} -XX:+CMSClassUnloadingEnabled sh.weave.alpha_engine ${REGISTERED_WORKER_ID} >> ${WEAVE_LOG}
+    fi
   else
     echo -e "Unable to create logfile ${WEAVE_LOG}\n"
   fi
