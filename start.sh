@@ -113,6 +113,7 @@ if [ -n "${WEAVE_LOG}" ]; then
     if [ "$CRON" == "1" ]; then
       checkLog
       if [ $? -eq 1 ]; then
+        echo "`date +%Y-%m-%d\ %I:%M:%S:%N` The log file hasn't been written to in over 20 minutes. Attempting to kill Weave and start a fresh one" >> ${WEAVE_LOG}
         checkPid
         ${JAVA_EXEC} -Xmx${MAX_MEMORY} -Xms${MIN_MEMORY} -XX:+CMSClassUnloadingEnabled sh.weave.alpha_engine ${REGISTERED_WORKER_ID} >> ${WEAVE_LOG} 2>&1 &
         echo $! > $PID_FILE
